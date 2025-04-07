@@ -21,5 +21,9 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Fotoğraf seçmek için erişim gereklidir.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Uygulama, fotoğraf çekmek için kameranızı kullanacak.</string>
 </dict>
 </plist>
