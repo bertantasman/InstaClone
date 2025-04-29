@@ -7,13 +7,13 @@
 
 import UIKit
 
-// Delegate protokolü
 protocol cellContentDelegate: AnyObject {
     func didTapOptionsButton(cell: cellContent)
 }
 
 class cellContent: UITableViewCell {
 
+    @IBOutlet weak var profilePhoto: UIImageView!
     @IBOutlet weak var optionsButton: UIButton!
     @IBOutlet weak var photo: UIImageView!
     @IBOutlet weak var nickname: UILabel!
@@ -27,7 +27,14 @@ class cellContent: UITableViewCell {
 
     override func awakeFromNib() {
         super.awakeFromNib()
+        profilePhoto.layer.cornerRadius = profilePhoto.frame.size.width / 2
+        profilePhoto.clipsToBounds = true
+        profilePhoto.contentMode = .scaleAspectFill
+        profilePhoto.layer.borderWidth = 1
+        profilePhoto.layer.borderColor = UIColor.lightGray.cgColor
     }
+
+
 
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)

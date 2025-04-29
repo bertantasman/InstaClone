@@ -9,11 +9,15 @@ import UIKit
 import FirebaseFirestore
 import FirebaseStorage
 import SDWebImage
+import FirebaseAuth
 
 class homeScreen: UIViewController {
 
+    @IBOutlet weak var quitButton: UIBarButtonItem!
+    @IBOutlet weak var profileButton: UIBarButtonItem!
     @IBOutlet weak var postCheckLabel: UILabel!
     @IBOutlet weak var homeTable: UITableView!
+    
     var contents = [data]()
 
     override func viewDidLoad() {
@@ -37,16 +41,41 @@ class homeScreen: UIViewController {
                     id: 0,
                     photo: dataMap["imageURL"] as? String,
                     nickname: dataMap["nickname"] as? String,
-                    content: dataMap["description"] as? String
+                    content: dataMap["description"] as? String,
+                    profileImageURL: dataMap["profileImageURL"] as? String
                 )
                 self.contents.append(content)
             }
 
             self.homeTable.reloadData()
             self.postCheckLabel.isHidden = !self.contents.isEmpty
-
         }
     }
+    
+    @IBAction func profileButtonTapped(_ sender: UIBarButtonItem) {
+        self.performSegue(withIdentifier: "toProfileScreen", sender: nil)
+    }
+    
+    @IBAction func logoutTapped(_ sender: Any) {
+        do {
+            try Auth.auth().signOut()
+            let storyboard = UIStoryboard(name: "Main", bundle: nil)
+            let loginVC = storyboard.instantiateViewController(withIdentifier: "loginScreen") as! loginScreen
+
+            let navController = UINavigationController(rootViewController: loginVC)
+
+            if let sceneDelegate = UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate {
+                sceneDelegate.window?.rootViewController = navController
+                sceneDelegate.window?.makeKeyAndVisible()
+            }
+
+        } catch let signOutError as NSError {
+            print("Error signing out: %@", signOutError)
+        }
+    }
+
+
+
     func deletePost(at indexPath: IndexPath) {
         let selectedPost = contents[indexPath.row]
 
@@ -80,6 +109,12 @@ extension homeScreen: UITableViewDelegate, UITableViewDataSource, cellContentDel
             cell.photo.sd_setImage(with: url)
         }
 
+        if let profileURLString = content.profileImageURL, let profileURL = URL(string: profileURLString) {
+            cell.profilePhoto.sd_setImage(with: profileURL)
+        } else {
+            cell.profilePhoto.image = UIImage(named: "defaultProfile")
+        }
+
         cell.nickname.text = content.nickname
         cell.content.text = content.content
         cell.selectionStyle = .none
@@ -111,7 +146,8 @@ extension homeScreen: UITableViewDelegate, UITableViewDataSource, cellContentDel
                         id: 0,
                         photo: dataMap["imageURL"] as? String,
                         nickname: dataMap["nickname"] as? String,
-                        content: dataMap["description"] as? String
+                        content: dataMap["description"] as? String,
+                        profileImageURL: dataMap["profileImageURL"] as? String
                     )
                     self.contents.append(content)
                 }
@@ -122,5 +158,4 @@ extension homeScreen: UITableViewDelegate, UITableViewDataSource, cellContentDel
             self.homeTable.refreshControl?.endRefreshing()
         }
     }
-
 }

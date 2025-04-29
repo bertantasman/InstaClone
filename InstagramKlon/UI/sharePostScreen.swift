@@ -6,9 +6,9 @@
 //
 
 import UIKit
-import PhotosUI
 import FirebaseStorage
 import FirebaseFirestore
+import FirebaseAuth
 import Reachability
 
 class sharePostScreen: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UITextFieldDelegate {
@@ -35,27 +35,26 @@ class sharePostScreen: UIViewController, UIImagePickerControllerDelegate, UINavi
         textField.resignFirstResponder()
         return true
     }
-    
+
     @IBAction func addPhotoTapped(_ sender: UIButton) {
-        let picker = UIImagePickerController()
-        picker.delegate = self
-        picker.sourceType = .photoLibrary
-        present(picker, animated: true, completion: nil)
+        openImagePicker(sourceType: .photoLibrary)
     }
     
     @IBAction func cameraButtonTapped(_ sender: UIButton) {
         if UIImagePickerController.isSourceTypeAvailable(.camera) {
-            let picker = UIImagePickerController()
-            picker.delegate = self
-            picker.sourceType = .camera
-            present(picker, animated: true, completion: nil)
+            openImagePicker(sourceType: .camera)
         } else {
-            let alert = UIAlertController(title: "Kamera bulunamadı", message: "Cihazınızda kamera bulunmuyor.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Tamam", style: .default))
-            present(alert, animated: true, completion: nil)
+            showAlert(title: "Kamera Bulunamadı", message: "Cihazınızda kamera yok.")
         }
     }
     
+    func openImagePicker(sourceType: UIImagePickerController.SourceType) {
+        let picker = UIImagePickerController()
+        picker.delegate = self
+        picker.sourceType = sourceType
+        present(picker, animated: true, completion: nil)
+    }
+
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         explainPlain.isUserInteractionEnabled = true
         explainPlain.alpha = 1.0
@@ -66,19 +65,14 @@ class sharePostScreen: UIViewController, UIImagePickerControllerDelegate, UINavi
             statusLabel.text = ""
         }
     }
-    
+
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true, completion: nil)
     }
-    
-    func isConnectedToNetwork() -> Bool {
-        let reachability = try! Reachability()
-        return reachability.connection != .unavailable
-    }
-    
+
     @IBAction func submitTapped(_ sender: UIButton) {
         if !isConnectedToNetwork() {
-            showErrorAlert(errorMessage: "Internet Bağlantısı yok")
+            showErrorAlert(errorMessage: "Internet bağlantısı yok.")
             return
         }
 
@@ -109,11 +103,28 @@ class sharePostScreen: UIViewController, UIImagePickerControllerDelegate, UINavi
                     return
                 }
 
-                let firestore = Firestore.firestore()
+                self.uploadPostToFirestore(imageURL: downloadURL.absoluteString, description: description)
+            }
+        }
+    }
+
+    func uploadPostToFirestore(imageURL: String, description: String) {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            self.showErrorAlert(errorMessage: "Kullanıcı doğrulanamadı.")
+            return
+        }
+
+        let firestore = Firestore.firestore()
+        firestore.collection("users").document(uid).getDocument { snapshot, error in
+            if let data = snapshot?.data() {
+                let nickname = data["nickname"] as? String ?? "Bilinmeyen"
+                let profileImageURL = data["profileImageURL"] as? String ?? ""
+
                 firestore.collection("posts").addDocument(data: [
-                    "imageURL": downloadURL.absoluteString,
+                    "imageURL": imageURL,
                     "description": description,
-                    "nickname": "Bertantasmann",
+                    "nickname": nickname,
+                    "profileImageURL": profileImageURL,
                     "timestamp": FieldValue.serverTimestamp()
                 ]) { error in
                     self.loadingIndicator.stopAnimating()
@@ -127,26 +138,32 @@ class sharePostScreen: UIViewController, UIImagePickerControllerDelegate, UINavi
                         }
                     }
                 }
+            } else {
+                self.showErrorAlert(errorMessage: "Kullanıcı bilgisi alınamadı.")
             }
         }
     }
-    func showErrorAlert(errorMessage: String) {
-        let alert = UIAlertController(title: "Hata", message: errorMessage, preferredStyle: .alert)
- 
-        alert.addAction(UIAlertAction(title: "Tekrar Dene", style: .default, handler: { _ in
-            self.submitTapped(self.submitButton)
-        }))
-        
-        alert.addAction(UIAlertAction(title: "Tamam", style: .cancel, handler: { _ in
-            self.navigateToHome()
-        }))
-            self.present(alert, animated: true, completion: nil)
+
+
+    func isConnectedToNetwork() -> Bool {
+        let reachability = try! Reachability()
+        return reachability.connection != .unavailable
     }
-    
+
+    func showErrorAlert(errorMessage: String) {
+        showAlert(title: "Hata", message: errorMessage)
+    }
+
+    func showAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Tamam", style: .default, handler: nil))
+        self.present(alert, animated: true, completion: nil)
+    }
+
     func navigateToHome() {
         self.navigationController?.popViewController(animated: true)
     }
-    
+
     @objc func dismissKeyboard() {
         view.endEditing(true)
     }
