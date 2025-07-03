@@ -15,9 +15,16 @@ class messageListCell: UITableViewCell {
     
     override func awakeFromNib() {
         super.awakeFromNib()
-        listPhoto.layer.cornerRadius = listPhoto.frame.size.width / 2
-        listPhoto.clipsToBounds = true
         listPhoto.contentMode = .scaleAspectFill
+        listPhoto.clipsToBounds = true
+        listPhoto.layer.cornerRadius = listPhoto.frame.size.width / 2
+
+        listLastMessage.numberOfLines = 0
+        listNickname.lineBreakMode = .byWordWrapping
+        listNickname.numberOfLines = 2
+        listNickname.adjustsFontSizeToFitWidth = false
+        listNickname.minimumScaleFactor = 1.0
+        listPhoto.layer.cornerRadius = listPhoto.frame.size.width / 2
     }
 
     override func setSelected(_ selected: Bool, animated: Bool) {

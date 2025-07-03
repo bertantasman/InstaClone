@@ -13,7 +13,11 @@ import SDWebImage
 class messagesList: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var newChatButton: UIButton!
+
     var chats: [Chat] = []
+    var selectedChatID: String?
+    var selectedReceiverID: String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,11 +29,13 @@ class messagesList: UIViewController, UITableViewDelegate, UITableViewDataSource
         tableView.delegate = self
         tableView.dataSource = self
         tableView.separatorStyle = .none
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 100
     }
 
     private func fetchChats() {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return }
-        
+
         Firestore.firestore().collection("chats")
             .whereField("participants", arrayContains: currentUserID)
             .order(by: "timestamp", descending: true)
@@ -39,8 +45,12 @@ class messagesList: UIViewController, UITableViewDelegate, UITableViewDataSource
                     print("Chatler alınamadı: \(error.localizedDescription)")
                     return
                 }
-                
-                guard let documents = snapshot?.documents else { return }
+
+                guard let documents = snapshot?.documents else {
+                    print("Boş geldi")
+                    return
+                }
+
                 self.chats.removeAll()
 
                 for doc in documents {
@@ -58,6 +68,12 @@ class messagesList: UIViewController, UITableViewDelegate, UITableViewDataSource
             }
     }
 
+    @IBAction func newChatButtonTapped(_ sender: UIButton) {
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let newChatVC = storyboard.instantiateViewController(withIdentifier: "newChatViewController")
+        self.navigationController?.pushViewController(newChatVC, animated: true)
+    }
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return chats.count
     }
@@ -65,16 +81,13 @@ class messagesList: UIViewController, UITableViewDelegate, UITableViewDataSource
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let chat = chats[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "messageListCell", for: indexPath) as! messageListCell
-        
+
         cell.listLastMessage.text = chat.lastMessage
-        
-        guard let currentUserID = Auth.auth().currentUser?.uid else {
-            cell.listNickname.text = "Bilinmeyen"
-            cell.listPhoto.image = UIImage(named: "defaultProfile")
-            return cell
-        }
-        
-        // Diğer katılımcı UID'sini bul
+        cell.listNickname.text = "Yükleniyor..."
+        cell.listPhoto.image = UIImage(named: "defaultProfile")
+
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return cell }
+
         if let otherUserID = chat.participants.first(where: { $0 != currentUserID }) {
             Firestore.firestore().collection("users").document(otherUserID).getDocument { snapshot, error in
                 if let data = snapshot?.data() {
@@ -85,19 +98,33 @@ class messagesList: UIViewController, UITableViewDelegate, UITableViewDataSource
                         cell.listNickname.text = nickname
                         if let url = URL(string: profileURL) {
                             cell.listPhoto.sd_setImage(with: url, placeholderImage: UIImage(named: "defaultProfile"))
-                        } else {
-                            cell.listPhoto.image = UIImage(named: "defaultProfile")
                         }
                     }
                 }
             }
         }
-        
+
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        // Burada chat detay ekranına geçiş yapılabilir
         tableView.deselectRow(at: indexPath, animated: true)
+
+        let chat = chats[indexPath.row]
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return }
+
+        if let otherUserID = chat.participants.first(where: { $0 != currentUserID }) {
+            selectedChatID = chat.id
+            selectedReceiverID = otherUserID
+            performSegue(withIdentifier: "goToChatVC", sender: nil)
+        }
+    }
+
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "goToChatVC",
+           let destination = segue.destination as? ChatViewController {
+            destination.chatID = selectedChatID ?? ""
+            destination.receiverID = selectedReceiverID ?? ""
+        }
     }
 }

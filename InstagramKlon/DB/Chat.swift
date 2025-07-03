@@ -12,7 +12,7 @@ struct Chat {
     let lastMessage: String
     let participants: [String]
     let timestamp: Date
-    var imageURL: String?  // Profil fotoğrafı için opsiyonel
+    var imageURL: String?
     
     init?(document: [String: Any], id: String) {
         guard let lastMessage = document["lastMessage"] as? String,

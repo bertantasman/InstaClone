@@ -54,17 +54,6 @@ class homeScreen: UIViewController {
         }
     }
     
-    @IBAction func chatButtonTapped(_ sender: UIBarButtonItem) {
-        print("Chat button tapped")
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        if let chatListVC = storyboard.instantiateViewController(withIdentifier: "messagesListVC") as? messagesList {
-            print("Navigating to chat list")
-            navigationController?.pushViewController(chatListVC, animated: true)
-        } else {
-            print("messagesListVC not found or casting failed")
-        }
-    }
-    
     func didTapComment(cell: cellContent) {
         guard let indexPath = homeTable.indexPath(for: cell) else { return }
         let selectedPost = contents[indexPath.row]
@@ -81,8 +70,6 @@ class homeScreen: UIViewController {
         }
     }
 
-
-    
     @IBAction func logoutTapped(_ sender: Any) {
         do {
             try Auth.auth().signOut()
@@ -92,7 +79,6 @@ class homeScreen: UIViewController {
         }
     }
 
-    
     @IBAction func deleteAccountTapped(_ sender: Any) {
         let alert = UIAlertController(title: "Hesabı Sil", message: "Bu işlem geri alınamaz. Hesabınızı silmek istediğinize emin misiniz?", preferredStyle: .alert)
 
